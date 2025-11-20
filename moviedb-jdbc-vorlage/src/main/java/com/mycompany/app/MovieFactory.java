@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import de.hsh.dbs2.imdb.util.DBConnection; 
 
 public class MovieFactory {
 
@@ -16,7 +17,7 @@ public class MovieFactory {
      * @return Das Movie-Objekt oder null, wenn nicht gefunden
      */
     public static Movie findById(long id) throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); // ĐÃ SỬA
 
         String sql = "SELECT MovieID, Title, Year, Type FROM Movie WHERE MovieID = ?";
 
@@ -46,7 +47,7 @@ public class MovieFactory {
      */
     public static List<Movie> findByTitle(String title) throws SQLException {
         List<Movie> movies = new ArrayList<>();
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); 
 
         //LIKE für case-insensitive Suche in PostgreSQL
         String sql = "SELECT MovieID, Title, Year, Type FROM Movie WHERE Title LIKE ?";

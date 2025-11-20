@@ -3,6 +3,7 @@ package com.mycompany.app;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import de.hsh.dbs2.imdb.util.DBConnection; 
 
 public class MovieGenre {
 
@@ -28,7 +29,7 @@ public class MovieGenre {
 
     // Insert-Methode
     public void insert() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); 
 
         // Keine Sequenz nötig - Primärschlüssel ist zusammengesetzt aus Fremdschlüsseln
         String sql = "INSERT INTO MovieGenre (MovieID, GenreID) VALUES (?, ?)";

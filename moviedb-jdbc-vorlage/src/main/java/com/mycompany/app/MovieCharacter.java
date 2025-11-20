@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import de.hsh.dbs2.imdb.util.DBConnection; 
 
 public class MovieCharacter {
 
@@ -66,7 +67,7 @@ public class MovieCharacter {
 
     //Insert-Methode
     public void insert() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); 
 
         //Keine Sequenz nötig - Primärschlüssel ist zusammengesetzt
         String sql = "INSERT INTO MovieCharacter (moveCharID, MovieID,  PlayerID, Character, Alias, Position) "

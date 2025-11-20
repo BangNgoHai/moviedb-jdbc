@@ -5,9 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import de.hsh.dbs2.imdb.util.DBConnection; // 
 
 public class Genre {
-
 
     private long genreId;
     private String genre;
@@ -31,7 +31,7 @@ public class Genre {
 
     //Insert-Methode
     public void insert() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); 
 
         //Neue ID aus Sequenz holen
         String seqSql = "SELECT nextval('genre_seq')";

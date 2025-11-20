@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import de.hsh.dbs2.imdb.util.DBConnection; // ĐÃ SỬA IMPORT
 
 public class Movie {
 
@@ -48,7 +49,7 @@ public class Movie {
 
     //Insert-Methode
     public void insert() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); // ĐÃ SỬA
 
         //Neue ID aus Sequenz holen
         String seqSql = "SELECT nextval('movie_seq')";
@@ -71,7 +72,7 @@ public class Movie {
 
     //Update-Methode
     public void update() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); // ĐÃ SỬA
 
         String sql = "UPDATE Movie SET Title = ?, Year = ?, Type = ? WHERE MovieID = ?";
 
@@ -86,7 +87,7 @@ public class Movie {
 
     //Delete-Methode
     public void delete() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); // ĐÃ SỬA
 
         String sql = "DELETE FROM Movie WHERE MovieID = ?";
 

@@ -1,9 +1,11 @@
 package com.mycompany.app;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import de.hsh.dbs2.imdb.util.DBConnection; 
 
 public class Person {
     private long personId;
@@ -28,7 +30,7 @@ public class Person {
 
     //Insert-Methode
     public void insert() throws SQLException {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); 
 
         //Neue ID aus Sequenz holen
         String seqSql = "SELECT nextval('person_seq')";

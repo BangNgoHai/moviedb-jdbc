@@ -95,13 +95,13 @@
 
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
-                <configuration>
-                    <mainClass>com.mycompany.app.App</mainClass> 
-                </configuration>
-            </plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.1.0</version>
+				<configuration>
+					<mainClass>de.hsh.dbs2.imdb.Starter</mainClass> 
+				</configuration>
+			</plugin>
         </plugins>
     </build>
 </project>
