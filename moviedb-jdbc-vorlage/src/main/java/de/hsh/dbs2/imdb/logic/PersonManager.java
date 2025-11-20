@@ -1,29 +1,38 @@
 package de.hsh.dbs2.imdb.logic;
 
-import java.util.List;
+import java.sql.*;
+import java.util.*;
+import com.mycompany.app.DbConnection;
 
 public class PersonManager {
+    public List<String> getPersonList(String name) throws Exception {
+        List<String> persons = new ArrayList<>();
+        Connection conn = DbConnection.getConnection();
+        String sql = "SELECT Name FROM Person WHERE LOWER(Name) LIKE LOWER(?) ORDER BY Name";
+        
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + name + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    persons.add(rs.getString("Name"));
+                }
+            }
+        }
+        return persons;
+    }
 
-	/**
-	 * Liefert eine Liste aller Personen, deren Name den Suchstring enthaelt.
-	 * @param name Suchstring
-	 * @return Liste mit passenden Personennamen, die in der Datenbank eingetragen sind.
-	 * @throws Exception Beschreibt evtl. aufgetretenen Fehler
-	 */
-	public List<String> getPersonList(String name) throws Exception {
-		/* TODO */
-		return null;
-	}
-
-	/**
-	 * Liefert die ID einer Person, deren Name genau name ist. Wenn die Person nicht existiert,
-	 * wird eine Exception geworfen.
-	 * @param name Exakter Name der Person
-	 * @return ID der Person
-	 * @throws Exception Beschreibt evtl. aufgetretenen Fehler
-	 */
-	public int getPerson(String name) throws Exception {
-		/* TODO */
-		return -1;
-	}
+    public int getPerson(String name) throws Exception {
+        Connection conn = DbConnection.getConnection();
+        String sql = "SELECT PersonID FROM Person WHERE Name = ?";
+        
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, name);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("PersonID");
+                }
+            }
+        }
+        throw new Exception("Person not found: " + name);
+    }
 }
