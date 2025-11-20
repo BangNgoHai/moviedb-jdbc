@@ -7,7 +7,7 @@ import de.hsh.dbs2.imdb.util.DBConnection;
 public class GenreManager {
     public List<String> getGenres() throws Exception {
         List<String> genres = new ArrayList<>();
-        Connection conn = DBConnection.getConnection(); // Sử dụng DBConnection của thầy
+        Connection conn = DBConnection.getConnection(); 
         
         String sql = "SELECT Genre FROM Genre ORDER BY Genre";
         try (Statement stmt = conn.createStatement();
@@ -15,8 +15,9 @@ public class GenreManager {
             while (rs.next()) {
                 genres.add(rs.getString("Genre"));
             }
-        }
-        // KHÔNG đóng connection ở đây!
+        }catch (SQLException e){
+			throw new Exception("Error fetching genres", e);
+		};
         return genres;
     }
 }

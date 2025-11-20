@@ -2,13 +2,26 @@ package de.hsh.dbs2.imdb.logic;
 
 import java.sql.*;
 import java.util.*;
+
 import com.mycompany.app.Movie;
 import com.mycompany.app.MovieFactory;
+
 import de.hsh.dbs2.imdb.util.DBConnection;
+
 import de.hsh.dbs2.imdb.logic.dto.MovieDTO;
 import de.hsh.dbs2.imdb.logic.dto.CharacterDTO;
 
 public class MovieManager {
+	
+	/**
+     * Ermittelt alle Filme, deren Filmtitel den Suchstring enthaelt. Wenn der
+     * String leer ist, sollen alle Filme zurueckgegeben werden. Der Suchstring
+     * soll ohne Ruecksicht auf Gross-/Kleinschreibung verarbeitet werden.
+     *
+     * @param search Suchstring.
+     * @return Liste aller passenden Filme als MovieDTO
+     * @throws Exception Beschreibt evtl. aufgetretenen Fehler
+     */
 
     public List<MovieDTO> getMovieList(String search) throws Exception {
         List<MovieDTO> movies = new ArrayList<>();
@@ -20,10 +33,20 @@ public class MovieManager {
         return movies;
     }
 
+	/**
+     * Speichert die uebergebene Version des Films neu in der Datenbank oder
+     * aktualisiert den existierenden Film. Dazu werden die Daten des Films
+     * selbst (Titel, Jahr, Typ) beruecksichtigt, aber auch alle Genres, die dem
+     * Film zugeordnet sind und die Liste der Charaktere auf den neuen Stand
+     * gebracht.
+     *
+     * @param movieDTO Film-Objekt mit Genres und Charakteren.
+     * @throws Exception Beschreibt evtl. aufgetretenen Fehler
+     */
+
     public void insertUpdateMovie(MovieDTO movieDTO) throws Exception {
-        Connection conn = DBConnection.getConnection(); // Sử dụng DBConnection của thầy
+        Connection conn = DBConnection.getConnection(); 
         try {
-            // Transaction được quản lý bởi DBConnection static
             if (movieDTO.getId() == null) {
                 Movie movie = new Movie();
                 movie.setTitle(movieDTO.getTitle());
@@ -42,14 +65,20 @@ public class MovieManager {
             saveMovieRelations(movieDTO, conn);
             
         } catch (Exception e) {
-            // Rollback sẽ được xử lý bởi DBConnection
             throw e;
         }
-        // KHÔNG đóng connection ở đây!
     }
 
+	/**
+     * Loescht einen Film aus der Datenbank. Es werden auch alle abhaengigen
+     * Objekte geloescht, d.h. alle Charaktere und alle Genre-Zuordnungen.
+     *
+     * @param movieId id des zu löschenden Films
+     * @throws Exception Beschreibt evtl. aufgetretenen Fehler
+     */
+
     public void deleteMovie(int movieId) throws Exception {
-        Connection conn = DBConnection.getConnection(); // Sử dụng DBConnection của thầy
+        Connection conn = DBConnection.getConnection(); 
         
         // Delete relations
         deleteMovieRelations(movieId, conn);
@@ -58,7 +87,6 @@ public class MovieManager {
         Movie movie = MovieFactory.findById(movieId);
         if (movie != null) movie.delete();
         
-        // KHÔNG đóng connection ở đây!
     }
 
     public MovieDTO getMovie(int movieId) throws Exception {
@@ -67,7 +95,6 @@ public class MovieManager {
         return createMovieDTO(movie);
     }
 
-    // Các helper methods giữ nguyên, nhưng sử dụng DBConnection.getConnection()
     private MovieDTO createMovieDTO(Movie movie) throws Exception {
         MovieDTO dto = new MovieDTO();
         dto.setId((int)movie.getMovieId());
@@ -75,7 +102,7 @@ public class MovieManager {
         dto.setYear(movie.getYear());
         dto.setType(movie.getType());
         
-        // Load genres và characters
+        // Load genres characters
         dto.setGenres(getMovieGenres(movie.getMovieId()));
         for (CharacterDTO character : getMovieCharacters(movie.getMovieId())) {
             dto.addCharacter(character);
@@ -83,6 +110,16 @@ public class MovieManager {
         
         return dto;
     }
+
+	/**
+     * Ermittelt alle Daten zu einem Movie (d.h. auch Genres und Charaktere) und
+     * trägt diese Daten in einem MovieDTO-Objekt ein.
+     *
+     * @param movieId ID des Films der eingelesen wird.
+     * @return MovieDTO-Objekt mit allen Informationen zu dem Film
+     * @throws Exception Z.B. bei Datenbank-Fehlern oder falls der Movie nicht
+     * existiert.
+     */
 
     private Set<String> getMovieGenres(long movieId) throws Exception {
         Set<String> genres = new HashSet<>();
