@@ -2,9 +2,9 @@ package de.hsh.dbs2.imdb.logic;
 
 import java.sql.*;
 import java.util.*;
-import com.mycompany.app.DbConnection;
 import com.mycompany.app.Movie;
 import com.mycompany.app.MovieFactory;
+import de.hsh.dbs2.imdb.util.DBConnection;
 import de.hsh.dbs2.imdb.logic.dto.MovieDTO;
 import de.hsh.dbs2.imdb.logic.dto.CharacterDTO;
 
@@ -12,99 +12,89 @@ public class MovieManager {
 
     public List<MovieDTO> getMovieList(String search) throws Exception {
         List<MovieDTO> movies = new ArrayList<>();
+        
         for (Movie movie : MovieFactory.findByTitle(search)) {
-            MovieDTO dto = new MovieDTO();
-            dto.setId((int) movie.getMovieId());  // Chuyển long sang int, chú ý có thể mất dữ liệu nếu ID quá lớn
-            dto.setTitle(movie.getTitle());
-            dto.setYear(movie.getYear());
-            dto.setType(movie.getType());
-            dto.setGenres(new HashSet<>(getMovieGenres(movie.getMovieId()))); // Chuyển List<String> thành Set<String>
-            dto.getCharacters().addAll(getMovieCharacters(movie.getMovieId())); // Thêm tất cả characters
+            MovieDTO dto = createMovieDTO(movie);
             movies.add(dto);
         }
         return movies;
     }
 
     public void insertUpdateMovie(MovieDTO movieDTO) throws Exception {
-        Connection conn = DbConnection.getConnection();
+        Connection conn = DBConnection.getConnection(); // Sử dụng DBConnection của thầy
         try {
-            conn.setAutoCommit(false);
-            
-            // Save movie
-            Movie movie;
+            // Transaction được quản lý bởi DBConnection static
             if (movieDTO.getId() == null) {
-                movie = new Movie();
+                Movie movie = new Movie();
                 movie.setTitle(movieDTO.getTitle());
                 movie.setYear(movieDTO.getYear());
                 movie.setType(movieDTO.getType());
                 movie.insert();
-                movieDTO.setId((int) movie.getMovieId()); // Chuyển long sang int
+                movieDTO.setId((int)movie.getMovieId());
             } else {
-                movie = MovieFactory.findById(movieDTO.getId());
+                Movie movie = MovieFactory.findById(movieDTO.getId());
                 movie.setTitle(movieDTO.getTitle());
                 movie.setYear(movieDTO.getYear());
                 movie.setType(movieDTO.getType());
                 movie.update();
             }
             
-            // Save relations
             saveMovieRelations(movieDTO, conn);
-            conn.commit();
             
         } catch (Exception e) {
-            conn.rollback();
+            // Rollback sẽ được xử lý bởi DBConnection
             throw e;
-        } finally {
-            conn.setAutoCommit(true);
         }
+        // KHÔNG đóng connection ở đây!
     }
 
     public void deleteMovie(int movieId) throws Exception {
-        Connection conn = DbConnection.getConnection();
-        try {
-            conn.setAutoCommit(false);
-            
-            // Delete relations first
-            executeUpdate("DELETE FROM MovieCharacter WHERE MovieID = " + movieId, conn);
-            executeUpdate("DELETE FROM MovieGenre WHERE MovieID = " + movieId, conn);
-            
-            // Delete movie
-            Movie movie = MovieFactory.findById(movieId);
-            if (movie != null) movie.delete();
-            
-            conn.commit();
-        } catch (Exception e) {
-            conn.rollback();
-            throw e;
-        } finally {
-            conn.setAutoCommit(true);
-        }
+        Connection conn = DBConnection.getConnection(); // Sử dụng DBConnection của thầy
+        
+        // Delete relations
+        deleteMovieRelations(movieId, conn);
+        
+        // Delete movie
+        Movie movie = MovieFactory.findById(movieId);
+        if (movie != null) movie.delete();
+        
+        // KHÔNG đóng connection ở đây!
     }
 
     public MovieDTO getMovie(int movieId) throws Exception {
         Movie movie = MovieFactory.findById(movieId);
         if (movie == null) throw new Exception("Movie not found: " + movieId);
-        
+        return createMovieDTO(movie);
+    }
+
+    // Các helper methods giữ nguyên, nhưng sử dụng DBConnection.getConnection()
+    private MovieDTO createMovieDTO(Movie movie) throws Exception {
         MovieDTO dto = new MovieDTO();
-        dto.setId((int) movie.getMovieId());
+        dto.setId((int)movie.getMovieId());
         dto.setTitle(movie.getTitle());
         dto.setYear(movie.getYear());
         dto.setType(movie.getType());
-        dto.setGenres(new HashSet<>(getMovieGenres(movieId)));
-        dto.getCharacters().addAll(getMovieCharacters(movieId));
+        
+        // Load genres và characters
+        dto.setGenres(getMovieGenres(movie.getMovieId()));
+        for (CharacterDTO character : getMovieCharacters(movie.getMovieId())) {
+            dto.addCharacter(character);
+        }
+        
         return dto;
     }
 
-    // Helper methods
-    private List<String> getMovieGenres(long movieId) throws Exception {
-        List<String> genres = new ArrayList<>();
+    private Set<String> getMovieGenres(long movieId) throws Exception {
+        Set<String> genres = new HashSet<>();
+        Connection conn = DBConnection.getConnection();
         String sql = "SELECT g.Genre FROM Genre g JOIN MovieGenre mg ON g.GenreID = mg.GenreID WHERE mg.MovieID = ?";
         
-        try (Connection conn = DbConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setLong(1, movieId);
             try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) genres.add(rs.getString("Genre"));
+                while (rs.next()) {
+                    genres.add(rs.getString("Genre"));
+                }
             }
         }
         return genres;
@@ -112,12 +102,12 @@ public class MovieManager {
 
     private List<CharacterDTO> getMovieCharacters(long movieId) throws Exception {
         List<CharacterDTO> characters = new ArrayList<>();
+        Connection conn = DBConnection.getConnection();
         String sql = "SELECT mc.Character, mc.Alias, p.Name as Player " +
                     "FROM MovieCharacter mc JOIN Person p ON mc.PlayerID = p.PersonID " +
                     "WHERE mc.MovieID = ? ORDER BY mc.Position";
         
-        try (Connection conn = DbConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setLong(1, movieId);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -133,15 +123,13 @@ public class MovieManager {
     }
 
     private void saveMovieRelations(MovieDTO movieDTO, Connection conn) throws Exception {
-        // Delete old relations
-        executeUpdate("DELETE FROM MovieCharacter WHERE MovieID = " + movieDTO.getId(), conn);
-        executeUpdate("DELETE FROM MovieGenre WHERE MovieID = " + movieDTO.getId(), conn);
+        deleteMovieRelations(movieDTO.getId(), conn);
         
         // Save genres
         String genreSql = "INSERT INTO MovieGenre (MovieID, GenreID) SELECT ?, GenreID FROM Genre WHERE Genre = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(genreSql)) {
             for (String genre : movieDTO.getGenres()) {
-                pstmt.setLong(1, movieDTO.getId());
+                pstmt.setInt(1, movieDTO.getId());
                 pstmt.setString(2, genre);
                 pstmt.executeUpdate();
             }
@@ -153,7 +141,7 @@ public class MovieManager {
         try (PreparedStatement pstmt = conn.prepareStatement(charSql)) {
             int position = 1;
             for (CharacterDTO charDTO : movieDTO.getCharacters()) {
-                pstmt.setLong(1, movieDTO.getId());
+                pstmt.setInt(1, movieDTO.getId());
                 pstmt.setString(2, charDTO.getCharacter());
                 pstmt.setString(3, charDTO.getAlias());
                 pstmt.setInt(4, position++);
@@ -163,9 +151,10 @@ public class MovieManager {
         }
     }
 
-    private void executeUpdate(String sql, Connection conn) throws SQLException {
+    private void deleteMovieRelations(int movieId, Connection conn) throws Exception {
         try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(sql);
+            stmt.executeUpdate("DELETE FROM MovieCharacter WHERE MovieID = " + movieId);
+            stmt.executeUpdate("DELETE FROM MovieGenre WHERE MovieID = " + movieId);
         }
     }
 }
